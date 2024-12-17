@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keyboard Melody</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        h1 {
+            color: #333;
+        }
+        p {
+            font-size: 18px;
+            color: #555;
+        }
+        #log {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>Keyboard Melody Player</h1>
+    <p>Press keys (a, w, s, e, d, f, t, g, y, h, u, j, k) to play notes.</p>
+    <div id="log">Key press log:</div>
+
+    <script>
+        document.addEventListener('keydown', function(event) {
+            const key = event.key.toLowerCase();
+            const validKeys = ['a', 'w', 's', 'e', 'd', 'f', 't', 'g', 'y', 'h', 'u', 'j', 'k'];
+
+            // Check if the key is a valid note
+            if (validKeys.includes(key)) {
+                // Log the key press
+                const logDiv = document.getElementById('log');
+                logDiv.innerHTML += `<p>Played: ${key}</p>`;
+
+                // Send keypress to the backend
+                fetch('/play', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ key: key }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data.message);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
