@@ -1,0 +1,1 @@
+# TODO add utils (for like IO / data handling) specific to melody generation
