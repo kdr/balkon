@@ -1,3 +1,6 @@
+"""
+From: https://github.com/musikalkemist/generativemusicaicourse/blob/main/12.%20Melody%20generation%20with%20Markov%20chains/Code/markovchain.py
+"""
 import numpy as np
 from music21 import metadata, note, stream
 
