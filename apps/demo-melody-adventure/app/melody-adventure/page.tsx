@@ -6,16 +6,21 @@ import { MelodyPlayer } from '@/components/melody-player'
 import { MelodyOptions } from '@/components/melody-options'
 import { VariationHistory } from '@/components/variation-history'
 import { DownloadSection } from '@/components/download-section'
-import type { MelodyState, Variation } from '@/types/melody'
 
-interface SeedData {
-  seed_notes: [string, number][]
-  midi_uri: string
+interface MelodyState {
+  currentAudioUrl: string
+  seedNotes: [string, number][]
+  currentNotes: [string, number][]
+  variations: {
+    id: string
+    type: string
+    timestamp: string
+    label: string
+  }[]
 }
 
 export default function MelodyAdventure() {
   const searchParams = useSearchParams()
-  const [seedData, setSeedData] = useState<SeedData>({ seed_notes: [], midi_uri: "" })
   const [melodyState, setMelodyState] = useState<MelodyState>(() => {
     // Try to initialize with the URL parameter data
     try {
@@ -24,6 +29,8 @@ export default function MelodyAdventure() {
         const parsedData = JSON.parse(decodeURIComponent(data))
         return {
           currentAudioUrl: parsedData.midi_uri,
+          seedNotes: parsedData.seed_notes,
+          currentNotes: parsedData.seed_notes, // Initialize current notes with seed notes
           variations: [{
             id: '1',
             type: 'seed',
@@ -39,6 +46,8 @@ export default function MelodyAdventure() {
     // Fallback to empty state if no data or error
     return {
       currentAudioUrl: '',
+      seedNotes: [],
+      currentNotes: [],
       variations: [{
         id: '1',
         type: 'seed',
@@ -55,33 +64,67 @@ export default function MelodyAdventure() {
     if (data) {
       try {
         const parsedData = JSON.parse(decodeURIComponent(data))
-        setSeedData(parsedData)
+        setMelodyState(prev => ({
+          ...prev,
+          currentAudioUrl: parsedData.midi_uri,
+          seedNotes: parsedData.seed_notes,
+          currentNotes: parsedData.seed_notes
+        }))
       } catch (error) {
         console.error('Error parsing seed data:', error)
-        setSeedData({ seed_notes: [], midi_uri: "" })
       }
     }
   }, [searchParams])
 
-  const handleVariationSelect = async (newVariation: Variation, file?: File) => {
+  const handleVariationSelect = async (newVariation: { type: string, label: string }, file?: File) => {
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Mock API response - use the seed midi_uri if it's a repeat-seed variation
-      const mockResponse = {
-        audioUrl: newVariation.type === 'repeat-seed' 
-          ? seedData.midi_uri 
-          : `/placeholder.mp3?v=${Date.now()}`, // Force new URL
-        variations: [...melodyState.variations, newVariation]
+      if (newVariation.type === 'upload' && file) {
+        const formData = new FormData()
+        formData.append('file', file)
+        const response = await fetch('/api/get_seed_notes', {
+          method: 'POST',
+          body: formData
+        })
+        const data = await response.json()
+        setMelodyState({
+          currentAudioUrl: data.midi_uri,
+          seedNotes: data.seed_notes,
+          currentNotes: data.current_notes,
+          variations: [{
+            id: Date.now().toString(),
+            type: 'seed',
+            timestamp: new Date().toISOString(),
+            label: 'Initial Seed'
+          }]
+        })
+      } else {
+        const response = await fetch('/api/update_melody', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            seed_notes: melodyState.seedNotes,
+            current_notes: melodyState.currentNotes,
+            variation_history: melodyState.variations.map(v => v.type),
+            requested_variation: newVariation.type
+          }),
+        })
+        
+        const data = await response.json()
+        setMelodyState(prev => ({
+          currentAudioUrl: data.midi_uri,
+          seedNotes: data.seed_notes,
+          currentNotes: data.current_notes,
+          variations: [...prev.variations, {
+            id: Date.now().toString(),
+            type: newVariation.type,
+            timestamp: new Date().toISOString(),
+            label: newVariation.label
+          }]
+        }))
       }
-
-      setMelodyState({
-        currentAudioUrl: mockResponse.audioUrl,
-        variations: mockResponse.variations
-      })
       
-      // Increment key to force reset of DownloadSection
       setResetKey(prev => prev + 1)
     } catch (error) {
       console.error('Failed to generate variation:', error)
