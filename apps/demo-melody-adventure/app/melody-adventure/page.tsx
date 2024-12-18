@@ -78,25 +78,40 @@ export default function MelodyAdventure() {
 
   const handleVariationSelect = async (newVariation: { type: string, label: string }, file?: File) => {
     try {
-      if (newVariation.type === 'upload' && file) {
+      if (newVariation.type === 'upload') {
+        if (!file) {
+          console.error('No file provided for upload variation')
+          return
+        }
+
         const formData = new FormData()
         formData.append('file', file)
-        const response = await fetch('/api/get_seed_notes', {
+        formData.append('requested_variation', newVariation.type)
+        formData.append('seed_notes', JSON.stringify(melodyState.seedNotes))
+        formData.append('current_notes', JSON.stringify(melodyState.currentNotes))
+        formData.append('variation_history', JSON.stringify(melodyState.variations.map(v => v.type)))
+
+        const response = await fetch('/api/update_melody', {
           method: 'POST',
           body: formData
         })
+        
+        if (!response.ok) {
+          throw new Error('Failed to process upload variation')
+        }
+
         const data = await response.json()
-        setMelodyState({
+        setMelodyState(prev => ({
           currentAudioUrl: data.midi_uri,
           seedNotes: data.seed_notes,
           currentNotes: data.current_notes,
-          variations: [{
+          variations: [...prev.variations, {
             id: Date.now().toString(),
-            type: 'seed',
+            type: newVariation.type,
             timestamp: new Date().toISOString(),
-            label: 'Initial Seed'
+            label: newVariation.label
           }]
-        })
+        }))
       } else {
         const response = await fetch('/api/update_melody', {
           method: 'POST',
@@ -111,6 +126,10 @@ export default function MelodyAdventure() {
           }),
         })
         
+        if (!response.ok) {
+          throw new Error('Failed to generate variation')
+        }
+
         const data = await response.json()
         setMelodyState(prev => ({
           currentAudioUrl: data.midi_uri,

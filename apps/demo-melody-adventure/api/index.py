@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory
 import os
+import json
 app = Flask(__name__)
 
 # Create a directory for MIDI files if it doesn't exist
@@ -13,8 +14,40 @@ def serve_midi(filename):
 
 @app.route("/api/update_melody", methods=['POST'])
 def update_melody():
-    data = request.json
+    # Check if this is an upload variation request
+    if request.form and 'requested_variation' in request.form:
+        # Handle multipart form data (file upload)
+        requested_variation = request.form.get('requested_variation')
+        
+        if requested_variation == 'upload':
+            if 'file' not in request.files:
+                return jsonify({'error': 'No file provided'}), 400
+                
+            midi_file = request.files['file']
+            if not midi_file:
+                return jsonify({'error': 'No file provided'}), 400
+
+            # Get other data from form
+            seed_notes = json.loads(request.form.get('seed_notes', '[]'))
+            current_notes = json.loads(request.form.get('current_notes', '[]'))
+            variation_history = json.loads(request.form.get('variation_history', '[]'))
+            
+            # Mock response with uploaded file
+            # You can save the file here if needed
+            # midi_file.save(os.path.join(MIDI_FOLDER, 'uploaded.mid'))
+            
+            return jsonify({
+                'seed_notes': seed_notes,
+                'current_notes': current_notes + [["C5", 2.0], ["A5", 0.5]],
+                'midi_uri': '/midi/example1.mid',
+                'variation_history': variation_history + [requested_variation]
+            })
     
+    # Handle regular JSON requests for other variations
+    data = request.json
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+        
     # Extract input data
     seed_notes = data.get('seed_notes', [])
     current_notes = data.get('current_notes', [])
@@ -34,7 +67,6 @@ def update_melody():
         'midi_uri': '/midi/example1.mid',
         'variation_history': new_variation_history
     }
-    print(response)
     return jsonify(response)
 
 @app.route("/api/get_seed_notes", methods=['POST'])
