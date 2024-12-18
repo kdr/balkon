@@ -49,6 +49,13 @@ export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
     const loadMidi = async () => {
       if (!audioUrl) return
       
+      // Stop any current playback
+      if (playbackRef.current) {
+        clearInterval(playbackRef.current)
+      }
+      stopAllNotes()
+      setIsPlaying(false)
+      
       setIsLoading(true)
       setError(null)
       
@@ -60,7 +67,6 @@ export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
         const midi = new Midi(arrayBuffer)
         midiRef.current = midi
         setProgress(0)
-        setIsPlaying(false)
         
       } catch (error) {
         console.error('Failed to load MIDI file:', error)
