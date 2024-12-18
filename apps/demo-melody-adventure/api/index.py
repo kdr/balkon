@@ -1,6 +1,9 @@
 from flask import Flask, request, jsonify, send_from_directory
 import os
 import json
+import time
+from fastapi.responses import JSONResponse
+
 app = Flask(__name__)
 
 # Create a directory for MIDI files if it doesn't exist
@@ -91,3 +94,23 @@ def get_seed_notes():
         'midi_uri': '/midi/twinkle.mid',
         'variation_history': ['seed']  # Add initial variation history
     })
+
+@app.route("/api/generate_accompaniment", methods=['POST'])
+def generate_accompaniment():
+    try:
+        # Simulate processing time
+        time.sleep(5)
+        
+        # Mock response - in a real implementation, this would be where you generate
+        # the accompaniment and return the actual file URL
+        mock_file_url = "/midi/accompaniment.mid"
+        
+        return jsonify({
+            "success": True,
+            "midi_uri": mock_file_url
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "error": str(e)
+        }), 500

@@ -36,10 +36,16 @@ export function DownloadSection({ audioUrl }: DownloadSectionProps) {
     setAccompanimentUrl(null)
 
     try {
-      // Mock API call with 10 second delay
-      await new Promise(resolve => setTimeout(resolve, 10000))
-      // In the future, this should generate a new accompaniment based on the input MIDI
-      setAccompanimentUrl(audioUrl.replace('.mid', '_accompaniment.mid'))
+      const response = await fetch('/api/generate_accompaniment', {
+        method: 'POST',
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate accompaniment')
+      }
+
+      const data = await response.json()
+      setAccompanimentUrl(data.midi_uri)
     } catch (error) {
       console.error('Failed to generate accompaniment:', error)
     } finally {
