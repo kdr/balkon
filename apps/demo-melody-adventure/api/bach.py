@@ -70,7 +70,7 @@ MODEL = MultiInstanceTrainableMarkovChainMelodyGenerator(list(STATES))
 MODEL.train(TRAINING_DATA)
 
 def generate_melody(notes, length=15, max_bars=10):
-    print(melody)
+    print(notes)
     melody = []
     new_notes = []
     if len(notes) > 0:
