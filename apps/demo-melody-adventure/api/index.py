@@ -3,12 +3,10 @@ import os
 import json
 import time
 from fastapi.responses import JSONResponse
+import uuid
+from .utils import save_midi_file, MIDI_FOLDER
 
 app = Flask(__name__)
-
-# Create a directory for MIDI files if it doesn't exist
-MIDI_FOLDER = os.path.join(os.path.dirname(__file__), 'midi_files')
-os.makedirs(MIDI_FOLDER, exist_ok=True)
 
 # Add route to serve MIDI files
 @app.route("/midi/<filename>")
@@ -70,6 +68,7 @@ def update_melody():
         'midi_uri': '/midi/example1.mid',
         'variation_history': new_variation_history
     }
+    print(json.dumps(response, indent=2))
     return jsonify(response)
 
 @app.route("/api/get_seed_notes", methods=['POST'])
@@ -78,6 +77,7 @@ def get_seed_notes():
         return jsonify({'error': 'No file provided'}), 400
         
     midi_file = request.files['file']
+    midi_uri = save_midi_file(midi_file)
     
     # Mock response with initial data
     return jsonify({
@@ -86,13 +86,13 @@ def get_seed_notes():
             ['G#5', 0.25],
             ['C5', 0.5]
         ],
-        'current_notes': [  # Add initial current_notes
+        'current_notes': [
             ['A5', 1.0],
             ['G#5', 0.25],
             ['C5', 0.5]
         ],
-        'midi_uri': '/midi/twinkle.mid',
-        'variation_history': ['seed']  # Add initial variation history
+        'midi_uri': midi_uri,
+        'variation_history': ['seed']
     })
 
 @app.route("/api/generate_accompaniment", methods=['POST'])
