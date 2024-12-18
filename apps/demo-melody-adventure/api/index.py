@@ -7,6 +7,8 @@ from .utils import save_midi_file, MIDI_FOLDER, midi_to_notes, save_melody_to_mi
 
 from . import bach
 from . import hindustani
+from . import carnatic
+from . import cumbia
 
 app = Flask(__name__)
 
@@ -14,6 +16,8 @@ MELODY_GENERATOR_MAP = {
     #'bach': bach.generate_melody,
     'indian': hindustani.generate_melody,
     'classical': bach.generate_melody,
+    'carnatic': carnatic.generate_melody,
+    'cumbia': cumbia.generate_melody,
     #'turkish': makam.generate_melody,
 }
 
@@ -76,7 +80,7 @@ def update_melody():
     if requested_variation == 'repeat-previous':
         new_notes = [n for n in recent_notes]
         current_notes = list(current_notes) + list(new_notes)   
-    elif requested_variation in ['turkish', 'indian', 'classical']:
+    elif requested_variation in ['turkish', 'indian', 'classical', 'carnatic', 'cumbia']:
         current_notes, new_notes = MELODY_GENERATOR_MAP[requested_variation](current_notes)
     elif requested_variation == 'repeat-seed':
         new_notes = [n for n in seed_notes]
