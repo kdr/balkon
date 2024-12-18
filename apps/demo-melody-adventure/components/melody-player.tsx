@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Play, Pause, RotateCcw } from 'lucide-react'
-import MidiPlayer from 'midi-player-js'
+import { Midi } from '@tonejs/midi'
 import Soundfont from 'soundfont-player'
 
 interface MelodyPlayerProps {
@@ -19,63 +19,24 @@ export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
   const [error, setError] = useState<string | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
   
-  const playerRef = useRef<MidiPlayer.Player | null>(null)
+  const midiRef = useRef<Midi | null>(null)
   const instrumentRef = useRef<any>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
+  const playbackRef = useRef<any>(null)
+  const startTimeRef = useRef<number>(0)
+  const seekPositionRef = useRef<number>(0)
+  const activeNotesRef = useRef<number[]>([])
+  const pausedTimeRef = useRef<number>(0)
   
-  // Initialize MIDI player only (without audio context)
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    try {
-      // Create MIDI player
-      const player = new MidiPlayer.Player()
-      player.on('playing', (currentTick: number, totalTicks: number) => {
-        setProgress((currentTick / totalTicks) * 100)
-      })
-      
-      player.on('midiEvent', (event: any) => {
-        if (event.name === 'Note on' && event.velocity > 0 && instrumentRef.current) {
-          instrumentRef.current.play(event.noteName, 0, {
-            gain: event.velocity / 100,
-          })
-        }
-      })
-
-      player.on('endOfFile', () => {
-        setIsPlaying(false)
-        setProgress(0)
-      })
-
-      playerRef.current = player
-    } catch (err) {
-      console.error('Failed to initialize MIDI player:', err)
-      setError('Failed to initialize MIDI player')
-    }
-
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.stop()
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close()
-      }
-    }
-  }, [])
-
   // Initialize audio context and instrument on first user interaction
   const initializeAudio = async () => {
-    if (isInitialized || !playerRef.current) return
+    if (isInitialized) return
     
     try {
-      // Create AudioContext
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
       audioContextRef.current = ctx
-
-      // Load instrument
       const instrument = await Soundfont.instrument(ctx, 'acoustic_grand_piano')
       instrumentRef.current = instrument
-
       setIsInitialized(true)
     } catch (err) {
       console.error('Failed to initialize audio:', err)
@@ -86,7 +47,7 @@ export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
   // Load MIDI file when URL changes
   useEffect(() => {
     const loadMidi = async () => {
-      if (!audioUrl || !playerRef.current) return
+      if (!audioUrl) return
       
       setIsLoading(true)
       setError(null)
@@ -96,9 +57,8 @@ export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
         if (!response.ok) throw new Error('Failed to fetch MIDI file')
         
         const arrayBuffer = await response.arrayBuffer()
-        const midiData = new Uint8Array(arrayBuffer)
-        
-        playerRef.current.loadArrayBuffer(midiData)
+        const midi = new Midi(arrayBuffer)
+        midiRef.current = midi
         setProgress(0)
         setIsPlaying(false)
         
@@ -111,12 +71,52 @@ export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
     }
 
     loadMidi()
+    return () => {
+      if (playbackRef.current) {
+        clearInterval(playbackRef.current)
+      }
+    }
   }, [audioUrl])
 
-  const togglePlay = async () => {
-    if (!playerRef.current) return
+  const stopAllNotes = () => {
+    if (!instrumentRef.current) return
+    
+    try {
+      // Stop all notes safely
+      instrumentRef.current.stop()
+      activeNotesRef.current = []
+    } catch (err) {
+      console.error('Error stopping notes:', err)
+    }
+  }
 
-    // Initialize audio on first play
+  const playNotes = (startTime: number) => {
+    if (!midiRef.current || !instrumentRef.current || !audioContextRef.current) return
+
+    stopAllNotes()
+
+    try {
+      const currentAudioTime = audioContextRef.current.currentTime
+      
+      midiRef.current.tracks.forEach(track => {
+        track.notes.forEach(note => {
+          if (note.time >= startTime) {
+            instrumentRef.current.play(note.name, currentAudioTime + (note.time - startTime), {
+              gain: note.velocity,
+              duration: note.duration
+            })
+          }
+        })
+      })
+    } catch (err) {
+      console.error('Error playing notes:', err)
+      setError('Error playing audio')
+    }
+  }
+
+  const togglePlay = async () => {
+    if (!midiRef.current) return
+
     if (!isInitialized) {
       await initializeAudio()
     }
@@ -127,29 +127,68 @@ export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
     }
 
     if (isPlaying) {
-      playerRef.current.pause()
+      clearInterval(playbackRef.current)
+      stopAllNotes()
+      const elapsed = (Date.now() - startTimeRef.current) / 1000
+      seekPositionRef.current = elapsed
       setIsPlaying(false)
     } else {
       await audioContextRef.current.resume()
-      playerRef.current.play()
+      const duration = midiRef.current.duration
+      startTimeRef.current = Date.now() - (seekPositionRef.current * 1000)
+      
+      playNotes(seekPositionRef.current)
+      
+      playbackRef.current = setInterval(() => {
+        const elapsed = (Date.now() - startTimeRef.current) / 1000
+        const progress = (elapsed / duration) * 100
+        
+        if (progress >= 100) {
+          clearInterval(playbackRef.current)
+          stopAllNotes()
+          setIsPlaying(false)
+          setProgress(0)
+          seekPositionRef.current = 0
+        } else {
+          setProgress(progress)
+          seekPositionRef.current = elapsed
+        }
+      }, 16)
+      
       setIsPlaying(true)
     }
   }
 
   const handleReset = () => {
-    if (!playerRef.current) return
-    
-    playerRef.current.stop()
+    if (playbackRef.current) {
+      clearInterval(playbackRef.current)
+    }
+    stopAllNotes()
     setIsPlaying(false)
     setProgress(0)
+    seekPositionRef.current = 0
   }
 
   const handleSeek = (value: number[]) => {
-    if (!playerRef.current) return
+    if (!midiRef.current) return
     
-    const targetTick = (value[0] / 100) * (playerRef.current.getTotalTicks() || 0)
-    playerRef.current.skipToTick(targetTick)
-    setProgress(value[0])
+    const wasPlaying = isPlaying
+    
+    // Stop current playback
+    if (playbackRef.current) {
+      clearInterval(playbackRef.current)
+    }
+    stopAllNotes()
+    setIsPlaying(false)
+    
+    const targetPercent = value[0]
+    const duration = midiRef.current.duration
+    seekPositionRef.current = (targetPercent / 100) * duration
+    setProgress(targetPercent)
+    
+    if (wasPlaying) {
+      togglePlay()
+    }
   }
 
   return (
