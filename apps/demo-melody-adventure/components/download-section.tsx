@@ -13,8 +13,13 @@ export function DownloadSection({ audioUrl }: DownloadSectionProps) {
   const [accompanimentUrl, setAccompanimentUrl] = useState<string | null>(null)
 
   const handleDownloadMidi = () => {
+    if (!audioUrl || audioUrl === "") {
+      console.error('No MIDI URL available')
+      return
+    }
+
     const element = document.createElement('a')
-    element.href = 'https://storage.googleapis.com/aviary-labs-media-public/example1.mid' // TODO: placeholder
+    element.href = audioUrl
     element.download = 'melody.mid'
     document.body.appendChild(element)
     element.click()
@@ -22,13 +27,19 @@ export function DownloadSection({ audioUrl }: DownloadSectionProps) {
   }
 
   const handleGenerateAccompaniment = async () => {
+    if (!audioUrl || audioUrl === "") {
+      console.error('No MIDI URL available')
+      return
+    }
+
     setIsGenerating(true)
     setAccompanimentUrl(null)
 
     try {
       // Mock API call with 10 second delay
       await new Promise(resolve => setTimeout(resolve, 10000))
-      setAccompanimentUrl('https://storage.googleapis.com/aviary-labs-media-public/example1_accompaniment.mid')
+      // In the future, this should generate a new accompaniment based on the input MIDI
+      setAccompanimentUrl(audioUrl.replace('.mid', '_accompaniment.mid'))
     } catch (error) {
       console.error('Failed to generate accompaniment:', error)
     } finally {
@@ -41,6 +52,7 @@ export function DownloadSection({ audioUrl }: DownloadSectionProps) {
       <Button 
         onClick={handleDownloadMidi} 
         className="w-full"
+        disabled={!audioUrl || audioUrl === ""}
       >
         <Download className="mr-2 h-4 w-4" />
         Download MIDI
@@ -52,6 +64,7 @@ export function DownloadSection({ audioUrl }: DownloadSectionProps) {
             onClick={handleGenerateAccompaniment} 
             variant="secondary" 
             className="w-full"
+            disabled={!audioUrl || audioUrl === ""}
           >
             <Music className="mr-2 h-4 w-4" />
             Generate Accompaniment

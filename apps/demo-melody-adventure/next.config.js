@@ -11,6 +11,20 @@ const nextConfig = {
       },
     ]
   },
+  async headers() {
+    return [
+      {
+        // Allow CORS for all routes
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+        ],
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig

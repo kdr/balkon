@@ -1,34 +1,78 @@
 'use client'
 
-import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { MelodyPlayer } from '@/components/melody-player'
 import { MelodyOptions } from '@/components/melody-options'
 import { VariationHistory } from '@/components/variation-history'
 import { DownloadSection } from '@/components/download-section'
 import type { MelodyState, Variation } from '@/types/melody'
 
+interface SeedData {
+  seed_notes: [string, number][]
+  midi_uri: string
+}
+
 export default function MelodyAdventure() {
-  const [melodyState, setMelodyState] = useState<MelodyState>({
-    currentAudioUrl: 'https://storage.googleapis.com/aviary-labs-media-public/example1.mid',
-    variations: [{
-      id: '1',
-      type: 'seed',
-      timestamp: new Date().toISOString(),
-      label: 'Initial Seed'
-    }]
+  const searchParams = useSearchParams()
+  const [seedData, setSeedData] = useState<SeedData>({ seed_notes: [], midi_uri: "" })
+  const [melodyState, setMelodyState] = useState<MelodyState>(() => {
+    // Try to initialize with the URL parameter data
+    try {
+      const data = searchParams.get('data')
+      if (data) {
+        const parsedData = JSON.parse(decodeURIComponent(data))
+        return {
+          currentAudioUrl: parsedData.midi_uri,
+          variations: [{
+            id: '1',
+            type: 'seed',
+            timestamp: new Date().toISOString(),
+            label: 'Initial Seed'
+          }]
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing initial seed data:', error)
+    }
+    
+    // Fallback to empty state if no data or error
+    return {
+      currentAudioUrl: '',
+      variations: [{
+        id: '1',
+        type: 'seed',
+        timestamp: new Date().toISOString(),
+        label: 'Initial Seed'
+      }]
+    }
   })
   
-  // Add a key to force reset of DownloadSection
   const [resetKey, setResetKey] = useState(0)
+
+  useEffect(() => {
+    const data = searchParams.get('data')
+    if (data) {
+      try {
+        const parsedData = JSON.parse(decodeURIComponent(data))
+        setSeedData(parsedData)
+      } catch (error) {
+        console.error('Error parsing seed data:', error)
+        setSeedData({ seed_notes: [], midi_uri: "" })
+      }
+    }
+  }, [searchParams])
 
   const handleVariationSelect = async (newVariation: Variation, file?: File) => {
     try {
       // Mock API call
       await new Promise(resolve => setTimeout(resolve, 1000))
       
-      // Mock API response
+      // Mock API response - use the seed midi_uri if it's a repeat-seed variation
       const mockResponse = {
-        audioUrl: `/placeholder.mp3?v=${Date.now()}`, // Force new URL
+        audioUrl: newVariation.type === 'repeat-seed' 
+          ? seedData.midi_uri 
+          : `/placeholder.mp3?v=${Date.now()}`, // Force new URL
         variations: [...melodyState.variations, newVariation]
       }
 

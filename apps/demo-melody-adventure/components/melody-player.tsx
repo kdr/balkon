@@ -5,65 +5,106 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
 import { Play, Pause, RotateCcw } from 'lucide-react'
-import * as Tone from 'tone'
-import { Midi } from '@tonejs/midi'
+import MidiPlayer from 'midi-player-js'
+import Soundfont from 'soundfont-player'
 
 interface MelodyPlayerProps {
   audioUrl: string
-}
-
-type EnhancedPolySynth = Tone.PolySynth & {
-  startTime?: number;
 }
 
 export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [progress, setProgress] = useState(0)
-  const midiData = useRef<Midi | null>(null)
-  const synth = useRef<EnhancedPolySynth | null>(null)
-  const duration = useRef(0)
-  const progressInterval = useRef<NodeJS.Timeout>()
-
-  // Initialize synth only once
+  const [error, setError] = useState<string | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
+  
+  const playerRef = useRef<MidiPlayer.Player | null>(null)
+  const instrumentRef = useRef<any>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  
+  // Initialize MIDI player only (without audio context)
   useEffect(() => {
-    if (!synth.current) {
-      synth.current = new Tone.PolySynth().toDestination()
+    if (typeof window === 'undefined') return
+
+    try {
+      // Create MIDI player
+      const player = new MidiPlayer.Player()
+      player.on('playing', (currentTick: number, totalTicks: number) => {
+        setProgress((currentTick / totalTicks) * 100)
+      })
+      
+      player.on('midiEvent', (event: any) => {
+        if (event.name === 'Note on' && event.velocity > 0 && instrumentRef.current) {
+          instrumentRef.current.play(event.noteName, 0, {
+            gain: event.velocity / 100,
+          })
+        }
+      })
+
+      player.on('endOfFile', () => {
+        setIsPlaying(false)
+        setProgress(0)
+      })
+
+      playerRef.current = player
+    } catch (err) {
+      console.error('Failed to initialize MIDI player:', err)
+      setError('Failed to initialize MIDI player')
     }
-    
-    // Cleanup when component unmounts
+
     return () => {
-      if (synth.current) {
-        Tone.Transport.stop()
-        Tone.Transport.cancel()
-        synth.current.dispose()
-        synth.current = null
+      if (playerRef.current) {
+        playerRef.current.stop()
       }
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current)
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
       }
     }
   }, [])
 
+  // Initialize audio context and instrument on first user interaction
+  const initializeAudio = async () => {
+    if (isInitialized || !playerRef.current) return
+    
+    try {
+      // Create AudioContext
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      audioContextRef.current = ctx
+
+      // Load instrument
+      const instrument = await Soundfont.instrument(ctx, 'acoustic_grand_piano')
+      instrumentRef.current = instrument
+
+      setIsInitialized(true)
+    } catch (err) {
+      console.error('Failed to initialize audio:', err)
+      setError('Failed to initialize audio')
+    }
+  }
+
   // Load MIDI file when URL changes
   useEffect(() => {
     const loadMidi = async () => {
-      if (!audioUrl) return
+      if (!audioUrl || !playerRef.current) return
       
       setIsLoading(true)
+      setError(null)
+      
       try {
         const response = await fetch(audioUrl)
+        if (!response.ok) throw new Error('Failed to fetch MIDI file')
+        
         const arrayBuffer = await response.arrayBuffer()
-        midiData.current = new Midi(arrayBuffer)
+        const midiData = new Uint8Array(arrayBuffer)
         
-        // Get duration from the last note's end time
-        const lastNote = midiData.current.tracks[0].notes.slice(-1)[0]
-        duration.current = lastNote ? lastNote.time + lastNote.duration : 0
+        playerRef.current.loadArrayBuffer(midiData)
+        setProgress(0)
+        setIsPlaying(false)
         
-        // Stop any playing notes and reset state
-        handleReset()
       } catch (error) {
         console.error('Failed to load MIDI file:', error)
+        setError(error instanceof Error ? error.message : 'Failed to load MIDI file')
       } finally {
         setIsLoading(false)
       }
@@ -72,101 +113,52 @@ export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
     loadMidi()
   }, [audioUrl])
 
-  // Update progress bar
-  useEffect(() => {
-    if (isPlaying) {
-      progressInterval.current = setInterval(() => {
-        const currentTime = Tone.Transport.seconds
-        const progressPercent = (currentTime / duration.current) * 100
-        setProgress(progressPercent)
-
-        // Stop at the end
-        if (currentTime >= duration.current) {
-          handleReset()
-        }
-      }, 16) // ~60fps
-    } else if (progressInterval.current) {
-      clearInterval(progressInterval.current)
-    }
-
-    return () => {
-      if (progressInterval.current) {
-        clearInterval(progressInterval.current)
-      }
-    }
-  }, [isPlaying])
-
-  const scheduleMidi = () => {
-    if (!midiData.current || !synth.current) return
-    
-    // Clear any previous events
-    Tone.Transport.cancel()
-    
-    // Schedule all notes
-    midiData.current.tracks[0].notes.forEach(note => {
-      Tone.Transport.schedule((time) => {
-        synth.current?.triggerAttackRelease(
-          note.name,
-          note.duration,
-          time,
-          note.velocity
-        )
-      }, note.time)
-    })
-  }
-
-  const playMidi = async () => {
-    if (!midiData.current || !synth.current) return
-
-    // Ensure audio context is started
-    await Tone.start()
-    
-    // Schedule notes if not already scheduled
-    scheduleMidi()
-    
-    // Start playback
-    Tone.Transport.start()
-  }
-
-  const stopMidi = () => {
-    // Pause the transport (maintains position)
-    Tone.Transport.pause()
-    
-    // Release any currently playing notes
-    if (synth.current) {
-      synth.current.releaseAll()
-    }
-  }
-
-  const handleSeek = (value: number[]) => {
-    const newPosition = (value[0] / 100) * duration.current
-    Tone.Transport.seconds = newPosition
-    setProgress(value[0])
-  }
-
   const togglePlay = async () => {
+    if (!playerRef.current) return
+
+    // Initialize audio on first play
+    if (!isInitialized) {
+      await initializeAudio()
+    }
+
+    if (!audioContextRef.current || !instrumentRef.current) {
+      setError('Audio not initialized')
+      return
+    }
+
     if (isPlaying) {
-      stopMidi()
+      playerRef.current.pause()
       setIsPlaying(false)
     } else {
-      await playMidi()
+      await audioContextRef.current.resume()
+      playerRef.current.play()
       setIsPlaying(true)
     }
   }
 
   const handleReset = () => {
-    if (isPlaying) {
-      stopMidi()
-      setIsPlaying(false)
-    }
-    // Reset transport to beginning
-    Tone.Transport.stop()
-    Tone.Transport.position = 0
+    if (!playerRef.current) return
+    
+    playerRef.current.stop()
+    setIsPlaying(false)
     setProgress(0)
+  }
+
+  const handleSeek = (value: number[]) => {
+    if (!playerRef.current) return
+    
+    const targetTick = (value[0] / 100) * (playerRef.current.getTotalTicks() || 0)
+    playerRef.current.skipToTick(targetTick)
+    setProgress(value[0])
   }
 
   return (
     <Card className="p-6 bg-zinc-950">
+      {error && (
+        <div className="text-red-500 text-sm mb-4 text-center">
+          Error: {error}
+        </div>
+      )}
       <div className="flex items-center gap-4">
         <Slider 
           value={[progress]}
@@ -181,7 +173,7 @@ export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
             size="sm"
             className="bg-red-500 hover:bg-red-600"
             onClick={togglePlay}
-            disabled={isLoading}
+            disabled={isLoading || !!error}
           >
             {isLoading ? (
               'Loading...'
@@ -195,7 +187,7 @@ export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
             size="sm"
             variant="outline"
             onClick={handleReset}
-            disabled={isLoading}
+            disabled={isLoading || !!error}
           >
             <RotateCcw className="h-4 w-4" />
           </Button>
