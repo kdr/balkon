@@ -157,12 +157,25 @@ export default function MelodyAdventure() {
           <h1 className="text-3xl font-bold text-center text-white">
             Melody Adventure
           </h1>
+          <p className="text-zinc-400 text-center max-w-lg mx-auto">
+            Welcome to your choose-your-own melody adventure! Use our AI-generated options or your own inputs to keep the melody going and create something unique.
+          </p>
           <MelodyPlayer audioUrl={melodyState.currentAudioUrl} />
+          
+          <h2 className="text-xl font-semibold text-zinc-300 pt-4">
+            Extend Your Melody
+          </h2>
           <MelodyOptions onSelect={handleVariationSelect} />
-          <DownloadSection 
-            key={resetKey} 
-            audioUrl={melodyState.currentAudioUrl} 
-          />
+          
+          <div className="text-left">
+            <h2 className="text-xl font-semibold text-zinc-300 pt-4 mb-4 text-center">
+              Export Options
+            </h2>
+            <DownloadSection 
+              key={resetKey} 
+              audioUrl={melodyState.currentAudioUrl} 
+            />
+          </div>
         </div>
       </div>
       <div className="w-80 border-l border-zinc-700 bg-zinc-900">

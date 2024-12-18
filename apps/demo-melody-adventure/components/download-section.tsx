@@ -48,22 +48,22 @@ export function DownloadSection({ audioUrl }: DownloadSectionProps) {
   }
 
   return (
-    <div className="space-y-4 w-full max-w-xs mx-auto">
-      <Button 
-        onClick={handleDownloadMidi} 
-        className="w-full"
-        disabled={!audioUrl || audioUrl === ""}
-      >
-        <Download className="mr-2 h-4 w-4" />
-        Download MIDI
-      </Button>
+    <div className="flex flex-col items-center space-y-4 w-full">
+      <div className="flex gap-4 flex-wrap justify-center">
+        <Button 
+          onClick={handleDownloadMidi} 
+          className="w-[240px]"
+          disabled={!audioUrl || audioUrl === ""}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Download MIDI
+        </Button>
 
-      <div className="space-y-2">
         {!isGenerating && !accompanimentUrl && (
           <Button 
             onClick={handleGenerateAccompaniment} 
             variant="secondary" 
-            className="w-full"
+            className="w-[240px]"
             disabled={!audioUrl || audioUrl === ""}
           >
             <Music className="mr-2 h-4 w-4" />
@@ -71,16 +71,10 @@ export function DownloadSection({ audioUrl }: DownloadSectionProps) {
           </Button>
         )}
 
-        {isGenerating && (
-          <p className="text-sm text-center text-muted-foreground py-2">
-            Generating accompaniment in progress...
-          </p>
-        )}
-
         {accompanimentUrl && !isGenerating && (
           <Button 
             variant="outline" 
-            className="w-full"
+            className="w-[240px]"
             onClick={() => {
               const element = document.createElement('a')
               element.href = accompanimentUrl
@@ -95,6 +89,12 @@ export function DownloadSection({ audioUrl }: DownloadSectionProps) {
           </Button>
         )}
       </div>
+
+      {isGenerating && (
+        <p className="text-sm text-center text-muted-foreground py-2">
+          Generating accompaniment in progress...
+        </p>
+      )}
     </div>
   )
 }
