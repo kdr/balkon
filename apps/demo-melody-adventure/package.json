@@ -14,6 +14,7 @@
     "@radix-ui/react-scroll-area": "^1.2.2",
     "@radix-ui/react-slider": "^1.2.2",
     "@radix-ui/react-slot": "^1.1.1",
+    "@tonejs/midi": "^2.0.28",
     "@types/node": "20.1.4",
     "@types/react": "18.2.6",
     "@types/react-dom": "18.2.4",
@@ -31,6 +32,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss": "3.3.2",
     "tailwindcss-animate": "^1.0.7",
+    "tone": "^15.0.4",
     "typescript": "5.0.4"
   }
 }

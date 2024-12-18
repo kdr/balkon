@@ -9,7 +9,7 @@ import type { MelodyState, Variation } from '@/types/melody'
 
 export default function MelodyAdventure() {
   const [melodyState, setMelodyState] = useState<MelodyState>({
-    currentAudioUrl: '/placeholder.mp3',
+    currentAudioUrl: 'https://storage.googleapis.com/aviary-labs-media-public/example1.mid',
     variations: [{
       id: '1',
       type: 'seed',
