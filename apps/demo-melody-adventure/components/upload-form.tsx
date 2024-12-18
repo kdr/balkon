@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Upload, Music } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useSearchParams } from 'next/navigation'
 
 export function UploadForm() {
   const router = useRouter()
   const [isDragging, setIsDragging] = useState(false)
   const [file, setFile] = useState<File | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -40,13 +42,40 @@ export function UploadForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Mock POST request
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    router.push('/melody-adventure')
+    setIsLoading(true)
+
+    try {
+      if (file) {
+        // Create form data and send file to API
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const response = await fetch('/api/get_seed_notes', {
+          method: 'POST',
+          body: formData
+        })
+
+        if (!response.ok) throw new Error('API request failed')
+        
+        const data = await response.json()
+        
+        // Navigate with the seed data
+        router.push(`/melody-adventure?data=${encodeURIComponent(JSON.stringify(data))}`)
+      }
+    } catch (error) {
+      console.error('Error processing file:', error)
+      // Add error handling UI as needed
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleStartEmpty = () => {
-    router.push('/melody-adventure')
+    const emptyData = {
+      seed_notes: [],
+      midi_uri: ""
+    }
+    router.push(`/melody-adventure?data=${encodeURIComponent(JSON.stringify(emptyData))}`)
   }
 
   return (
@@ -79,14 +108,15 @@ export function UploadForm() {
       </Card>
 
       <div className="flex flex-col gap-2">
-        <Button type="submit" disabled={!file}>
+        <Button type="submit" disabled={!file || isLoading}>
           <Upload className="mr-2 h-4 w-4" />
-          Upload and Continue
+          {isLoading ? 'Processing...' : 'Upload and Continue'}
         </Button>
         <Button
           type="button"
           variant="secondary"
           onClick={handleStartEmpty}
+          disabled={isLoading}
         >
           <Music className="mr-2 h-4 w-4" />
           Start Without Seed

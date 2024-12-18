@@ -1,43 +1,149 @@
 'use client'
 
-import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { MelodyPlayer } from '@/components/melody-player'
 import { MelodyOptions } from '@/components/melody-options'
 import { VariationHistory } from '@/components/variation-history'
 import { DownloadSection } from '@/components/download-section'
-import type { MelodyState, Variation } from '@/types/melody'
+
+interface MelodyState {
+  currentAudioUrl: string
+  seedNotes: [string, number][]
+  currentNotes: [string, number][]
+  variations: {
+    id: string
+    type: string
+    timestamp: string
+    label: string
+  }[]
+}
 
 export default function MelodyAdventure() {
-  const [melodyState, setMelodyState] = useState<MelodyState>({
-    currentAudioUrl: '/placeholder.mp3',
-    variations: [{
-      id: '1',
-      type: 'seed',
-      timestamp: new Date().toISOString(),
-      label: 'Initial Seed'
-    }]
+  const searchParams = useSearchParams()
+  const [melodyState, setMelodyState] = useState<MelodyState>(() => {
+    // Try to initialize with the URL parameter data
+    try {
+      const data = searchParams.get('data')
+      if (data) {
+        const parsedData = JSON.parse(decodeURIComponent(data))
+        return {
+          currentAudioUrl: parsedData.midi_uri,
+          seedNotes: parsedData.seed_notes,
+          currentNotes: parsedData.seed_notes, // Initialize current notes with seed notes
+          variations: [{
+            id: '1',
+            type: 'seed',
+            timestamp: new Date().toISOString(),
+            label: 'Initial Seed'
+          }]
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing initial seed data:', error)
+    }
+    
+    // Fallback to empty state if no data or error
+    return {
+      currentAudioUrl: '',
+      seedNotes: [],
+      currentNotes: [],
+      variations: [{
+        id: '1',
+        type: 'seed',
+        timestamp: new Date().toISOString(),
+        label: 'Initial Seed'
+      }]
+    }
   })
   
-  // Add a key to force reset of DownloadSection
   const [resetKey, setResetKey] = useState(0)
 
-  const handleVariationSelect = async (newVariation: Variation, file?: File) => {
-    try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Mock API response
-      const mockResponse = {
-        audioUrl: `/placeholder.mp3?v=${Date.now()}`, // Force new URL
-        variations: [...melodyState.variations, newVariation]
+  useEffect(() => {
+    const data = searchParams.get('data')
+    if (data) {
+      try {
+        const parsedData = JSON.parse(decodeURIComponent(data))
+        setMelodyState(prev => ({
+          ...prev,
+          currentAudioUrl: parsedData.midi_uri,
+          seedNotes: parsedData.seed_notes,
+          currentNotes: parsedData.seed_notes
+        }))
+      } catch (error) {
+        console.error('Error parsing seed data:', error)
       }
+    }
+  }, [searchParams])
 
-      setMelodyState({
-        currentAudioUrl: mockResponse.audioUrl,
-        variations: mockResponse.variations
-      })
+  const handleVariationSelect = async (newVariation: { type: string, label: string }, file?: File) => {
+    try {
+      if (newVariation.type === 'upload') {
+        if (!file) {
+          console.error('No file provided for upload variation')
+          return
+        }
+
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('requested_variation', newVariation.type)
+        formData.append('seed_notes', JSON.stringify(melodyState.seedNotes))
+        formData.append('current_notes', JSON.stringify(melodyState.currentNotes))
+        formData.append('variation_history', JSON.stringify(melodyState.variations.map(v => v.type)))
+
+        const response = await fetch('/api/update_melody', {
+          method: 'POST',
+          body: formData
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to process upload variation')
+        }
+
+        const data = await response.json()
+        setMelodyState(prev => ({
+          currentAudioUrl: data.midi_uri,
+          seedNotes: data.seed_notes,
+          currentNotes: data.current_notes,
+          variations: [...prev.variations, {
+            id: Date.now().toString(),
+            type: newVariation.type,
+            timestamp: new Date().toISOString(),
+            label: newVariation.label
+          }]
+        }))
+      } else {
+        const response = await fetch('/api/update_melody', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            seed_notes: melodyState.seedNotes,
+            current_notes: melodyState.currentNotes,
+            variation_history: melodyState.variations.map(v => v.type),
+            requested_variation: newVariation.type
+          }),
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to generate variation')
+        }
+
+        const data = await response.json()
+        setMelodyState(prev => ({
+          currentAudioUrl: data.midi_uri,
+          seedNotes: data.seed_notes,
+          currentNotes: data.current_notes,
+          variations: [...prev.variations, {
+            id: Date.now().toString(),
+            type: newVariation.type,
+            timestamp: new Date().toISOString(),
+            label: newVariation.label
+          }]
+        }))
+      }
       
-      // Increment key to force reset of DownloadSection
       setResetKey(prev => prev + 1)
     } catch (error) {
       console.error('Failed to generate variation:', error)
@@ -51,12 +157,25 @@ export default function MelodyAdventure() {
           <h1 className="text-3xl font-bold text-center text-white">
             Melody Adventure
           </h1>
+          <p className="text-zinc-400 text-center max-w-lg mx-auto">
+            Welcome to your choose-your-own melody adventure! Use our AI-generated options or your own inputs to keep the melody going and create something unique.
+          </p>
           <MelodyPlayer audioUrl={melodyState.currentAudioUrl} />
+          
+          <h2 className="text-xl font-semibold text-zinc-300 pt-4">
+            Extend Your Melody
+          </h2>
           <MelodyOptions onSelect={handleVariationSelect} />
-          <DownloadSection 
-            key={resetKey} 
-            audioUrl={melodyState.currentAudioUrl} 
-          />
+          
+          <div className="text-left">
+            <h2 className="text-xl font-semibold text-zinc-300 pt-4 mb-4 text-center">
+              Export Options
+            </h2>
+            <DownloadSection 
+              key={resetKey} 
+              audioUrl={melodyState.currentAudioUrl} 
+            />
+          </div>
         </div>
       </div>
       <div className="w-80 border-l border-zinc-700 bg-zinc-900">
