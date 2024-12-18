@@ -2,8 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 import os
 import json
 import time
-from fastapi.responses import JSONResponse
-import uuid
+
 from .utils import save_midi_file, MIDI_FOLDER, midi_to_notes, save_melody_to_midi
 
 from . import bach
@@ -13,7 +12,7 @@ app = Flask(__name__)
 
 MELODY_GENERATOR_MAP = {
     #'bach': bach.generate_melody,
-    #'indian': hindustani.generate_melody,
+    'indian': hindustani.generate_melody,
     'classical': bach.generate_melody,
     #'turkish': makam.generate_melody,
 }

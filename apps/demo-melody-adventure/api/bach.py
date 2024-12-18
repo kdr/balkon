@@ -70,16 +70,19 @@ MODEL = MultiInstanceTrainableMarkovChainMelodyGenerator(list(STATES))
 MODEL.train(TRAINING_DATA)
 
 def generate_melody(notes, length=15, max_bars=10):
+    print(melody)
     melody = []
     new_notes = []
     if len(notes) > 0:
-        # try:
-        melody, new_notes = MODEL.generate(length, previous_sequence=notes)
-        # except Exception as e:
-        #     print(">>>>>>> Error generating melody", e)
-        #     # case of not supported start sequence / overlap
-        #     melody, new_notes  = MODEL.generate(length)
+        try:
+            melody, new_notes = MODEL.generate(length, previous_sequence=notes)
+        except Exception as e:
+            print(">>>>>>> Error generating melody", e)
+            # case of not supported start sequence / overlap
+            _, new_notes  = MODEL.generate(length)
+            melody = notes + new_notes
     else:
         melody, new_notes = MODEL.generate(length)
+    print(melody)
 
     return melody, new_notes
