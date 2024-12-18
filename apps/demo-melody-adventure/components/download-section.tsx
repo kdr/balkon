@@ -14,8 +14,8 @@ export function DownloadSection({ audioUrl }: DownloadSectionProps) {
 
   const handleDownloadMidi = () => {
     const element = document.createElement('a')
-    element.href = '/placeholder.midi'
-    element.download = 'melody.midi'
+    element.href = 'https://storage.googleapis.com/aviary-labs-media-public/example1.mid' // TODO: placeholder
+    element.download = 'melody.mid'
     document.body.appendChild(element)
     element.click()
     document.body.removeChild(element)
@@ -71,7 +71,7 @@ export function DownloadSection({ audioUrl }: DownloadSectionProps) {
             onClick={() => {
               const element = document.createElement('a')
               element.href = accompanimentUrl
-              element.download = 'accompaniment.midi'
+              element.download = 'accompaniment.mid'
               document.body.appendChild(element)
               element.click()
               document.body.removeChild(element)

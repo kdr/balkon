@@ -26,12 +26,6 @@ const OPTIONS = [
     color: 'bg-violet-500/20 hover:bg-violet-500/30 text-violet-400'
   },
   { 
-    id: 'ai', 
-    label: 'AI Variation', 
-    icon: Sparkles,
-    color: 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400'
-  },
-  { 
     id: 'repeat-previous', 
     label: 'Repeat Previous', 
     icon: Repeat,
@@ -49,12 +43,6 @@ const OPTIONS = [
     icon: Upload,
     color: 'bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400',
     isUpload: true
-  },
-  { 
-    id: 'repeat-phrase', 
-    label: 'Repeat Phrase', 
-    icon: Rewind,
-    color: 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-400'
   },
 ]
 

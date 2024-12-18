@@ -7,8 +7,8 @@ export function DownloadButton() {
   const handleDownload = () => {
     // Mock download functionality
     const element = document.createElement('a')
-    element.href = '/placeholder.midi'
-    element.download = 'melody.midi'
+    element.href = 'https://storage.googleapis.com/aviary-labs-media-public/example1.mid' // TODO: placeholder
+    element.download = 'melody.mid'
     document.body.appendChild(element)
     element.click()
     document.body.removeChild(element)
@@ -21,4 +21,3 @@ export function DownloadButton() {
     </Button>
   )
 }
-
