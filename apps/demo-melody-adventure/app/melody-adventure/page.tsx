@@ -11,6 +11,7 @@ interface MelodyState {
   currentAudioUrl: string
   seedNotes: [string, number][]
   currentNotes: [string, number][]
+  recentNotes: [string, number][]
   variations: {
     id: string
     type: string
@@ -31,6 +32,7 @@ export default function MelodyAdventure() {
           currentAudioUrl: parsedData.midi_uri,
           seedNotes: parsedData.seed_notes,
           currentNotes: parsedData.seed_notes, // Initialize current notes with seed notes
+          recentNotes: [],
           variations: [{
             id: '1',
             type: 'seed',
@@ -48,6 +50,7 @@ export default function MelodyAdventure() {
       currentAudioUrl: '',
       seedNotes: [],
       currentNotes: [],
+      recentNotes: [],
       variations: [{
         id: '1',
         type: 'seed',
@@ -68,7 +71,8 @@ export default function MelodyAdventure() {
           ...prev,
           currentAudioUrl: parsedData.midi_uri,
           seedNotes: parsedData.seed_notes,
-          currentNotes: parsedData.seed_notes
+          currentNotes: parsedData.seed_notes,
+          recentNotes: [],
         }))
       } catch (error) {
         console.error('Error parsing seed data:', error)
@@ -78,7 +82,7 @@ export default function MelodyAdventure() {
 
   const handleVariationSelect = async (newVariation: { type: string, label: string }, file?: File) => {
     try {
-      if (newVariation.type === 'upload') {
+      if (newVariation.type === 'upload-phrase') {
         if (!file) {
           console.error('No file provided for upload variation')
           return
@@ -89,6 +93,7 @@ export default function MelodyAdventure() {
         formData.append('requested_variation', newVariation.type)
         formData.append('seed_notes', JSON.stringify(melodyState.seedNotes))
         formData.append('current_notes', JSON.stringify(melodyState.currentNotes))
+        formData.append('recent_notes', JSON.stringify(melodyState.recentNotes))
         formData.append('variation_history', JSON.stringify(melodyState.variations.map(v => v.type)))
 
         const response = await fetch('/api/update_melody', {
@@ -105,6 +110,7 @@ export default function MelodyAdventure() {
           currentAudioUrl: data.midi_uri,
           seedNotes: data.seed_notes,
           currentNotes: data.current_notes,
+          recentNotes: data.recent_notes,
           variations: [...prev.variations, {
             id: Date.now().toString(),
             type: newVariation.type,
@@ -121,6 +127,7 @@ export default function MelodyAdventure() {
           body: JSON.stringify({
             seed_notes: melodyState.seedNotes,
             current_notes: melodyState.currentNotes,
+            recent_notes: melodyState.recentNotes,
             variation_history: melodyState.variations.map(v => v.type),
             requested_variation: newVariation.type
           }),
@@ -135,6 +142,7 @@ export default function MelodyAdventure() {
           currentAudioUrl: data.midi_uri,
           seedNotes: data.seed_notes,
           currentNotes: data.current_notes,
+          recentNotes: data.recent_notes,
           variations: [...prev.variations, {
             id: Date.now().toString(),
             type: newVariation.type,

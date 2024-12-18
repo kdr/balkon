@@ -9,19 +9,31 @@ import type { Variation } from '@/types/melody'
 const OPTIONS = [
   { 
     id: 'turkish', 
-    label: 'Turkish Variation', 
+    label: 'Turkish Makam', 
     icon: Globe,
-    color: 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400'
+    color: 'bg-red-500/20 hover:bg-red-500/30 text-red-400'
   },
   { 
     id: 'indian', 
-    label: 'Indian Variation', 
+    label: 'Hindustani', 
     icon: Music2,
     color: 'bg-orange-500/20 hover:bg-orange-500/30 text-orange-400'
   },
   { 
-    id: 'classical', 
-    label: 'Classical Western', 
+    id: 'carnatic', 
+    label: 'Carnatic', 
+    icon: Waves,
+    color: 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
+  },
+  { 
+    id: 'cumbia', 
+    label: 'Cumbia', 
+    icon: Sparkles,
+    color: 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-400'
+  },
+  { 
+    id: 'classical',
+    label: 'Classic Bach', 
     icon: Waves,
     color: 'bg-violet-500/20 hover:bg-violet-500/30 text-violet-400'
   },
