@@ -10,6 +10,10 @@ from . import carnatic
 from . import cumbia
 from . import turkish
 
+MAX_LENGTH = 32
+MAX_BARS = 2
+QUARTER_NOTE_PER_BAR = 4
+
 app = Flask(__name__)
 
 MELODY_GENERATOR_MAP = {
@@ -86,7 +90,7 @@ def update_melody():
         new_notes = [n for n in recent_notes]
         current_notes = list(current_notes) + list(new_notes)   
     elif requested_variation in ['turkish', 'indian', 'classical', 'carnatic', 'cumbia']:
-        current_notes, new_notes = MELODY_GENERATOR_MAP[requested_variation](current_notes)
+        current_notes, new_notes = MELODY_GENERATOR_MAP[requested_variation](current_notes, length=MAX_LENGTH, max_bars=MAX_BARS)
     elif requested_variation == 'repeat-seed':
         new_notes = [n for n in seed_notes]
         current_notes = list(current_notes) + list(new_notes)   

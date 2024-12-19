@@ -143,24 +143,6 @@ def train_model(parsed_makam_data, states):
 TRAINING_DATA, STATES, MAKAM_PITCHES = parse_symbtr_corpus(TRAINING_MAKAM)
 MODEL = train_model(TRAINING_DATA, STATES)
 
-def generate_melody(notes, length=15, max_bars=10):
-    print(notes)    
-    melody = []
-    new_notes = []
-    if len(notes) > 0:
-        try:
-            melody, new_notes = MODEL.generate(length, previous_sequence=notes)
-        except Exception as e:
-            print(">>>>>>> Error generating melody", e)
-            # case of not supported start sequence / overlap
-            _, new_notes  = MODEL.generate(length)
-            melody = notes + new_notes
-    else:
-        melody, new_notes = MODEL.generate(length)
-    print(melody)
-
-    return melody, new_notes
-
 def generate_melody_pitch_to_makam_pitch_map(makam_pitches):
     d = {}
     for p in makam_pitches:
@@ -173,3 +155,19 @@ PITCH_MAP = generate_melody_pitch_to_makam_pitch_map(MAKAM_PITCHES)
 def makam_note_remap(pitch, duration):
     return Note(PITCH_MAP[pitch], quarterLength=duration)
 
+def generate_melody(notes, length=15, max_bars=10, quarter_note_per_bar=4):
+    print(notes)
+    melody = []
+    new_notes = []
+    if len(notes) > 0:
+        try:
+            melody, new_notes = MODEL.generate(length, previous_sequence=notes, max_bars=max_bars, quarter_note_per_bar=quarter_note_per_bar)
+        except Exception as e:
+            print(">>>>>>> Error generating melody", e)
+            _, new_notes  = MODEL.generate(length)
+            melody = notes + new_notes
+    else:
+        melody, new_notes = MODEL.generate(length)
+    print(melody)
+
+    return melody, new_notes

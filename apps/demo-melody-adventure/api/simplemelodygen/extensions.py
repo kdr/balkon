@@ -2,6 +2,7 @@
 
 from .markovchain import MarkovChainMelodyGenerator
 
+from .bars import enforce_bars
 class MultiInstanceTrainableMarkovChainMelodyGenerator(MarkovChainMelodyGenerator):
     """
     Represents a Markov Chain model for melody generation that is trainable with multiple sequence/example instances
@@ -63,7 +64,7 @@ class MultiInstanceTrainableMarkovChainMelodyGenerator(MarkovChainMelodyGenerato
         self._calculate_initial_probabilities(notes)
         self._calculate_transition_matrix(examples)
 
-    def generate(self, length, previous_sequence=[]):
+    def generate(self, length, previous_sequence=[], max_bars=10, quarter_note_per_bar=4):
         """
         Generate a melody of a given length.
 
@@ -85,6 +86,7 @@ class MultiInstanceTrainableMarkovChainMelodyGenerator(MarkovChainMelodyGenerato
             full_melody = [s for s in previous_sequence]
         for _ in range(1, length):
             full_melody.append(self._generate_next_state(full_melody[-1]))
-        return full_melody, full_melody[len(previous_sequence):]
-
         
+        previous, new = full_melody[:len(previous_sequence)], full_melody[len(previous_sequence):]
+        new = enforce_bars(new, max_bars, quarter_note_per_bar)
+        return previous + new, new
