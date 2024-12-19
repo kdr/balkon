@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Globe, Music2, Waves, Sparkles, Repeat, RotateCcw, Upload, Rewind } from 'lucide-react'
+import { Globe, Music2, Waves, Sparkles, Repeat, RotateCcw, Upload, Rewind, Piano, Music } from 'lucide-react'
 import type { Variation } from '@/types/melody'
 
 const OPTIONS = [
@@ -19,12 +19,12 @@ const OPTIONS = [
     icon: Music2,
     color: 'bg-orange-500/20 hover:bg-orange-500/30 text-orange-400'
   },
-  { 
-    id: 'carnatic', 
-    label: 'Carnatic', 
-    icon: Waves,
-    color: 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
-  },
+  // { 
+  //   id: 'carnatic', 
+  //   label: 'Carnatic', 
+  //   icon: Waves,
+  //   color: 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
+  // },
   { 
     id: 'cumbia', 
     label: 'Cumbia', 
@@ -34,8 +34,14 @@ const OPTIONS = [
   { 
     id: 'classical',
     label: 'Classic Bach', 
-    icon: Waves,
+    icon: Piano,
     color: 'bg-violet-500/20 hover:bg-violet-500/30 text-violet-400'
+  },
+  { 
+    id: 'mozart',
+    label: 'Classic Mozart', 
+    icon: Music,
+    color: 'bg-green-500/20 hover:bg-green-500/30 text-green-400'
   },
   { 
     id: 'repeat-previous', 

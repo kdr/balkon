@@ -1,4 +1,4 @@
-export type VariationType = 'turkish' | 'indian' | 'carnatic' | 'cumbia' | 'classical' | 'repeat-previous' | 'repeat-seed' | 'upload-phrase' | 'seed'
+export type VariationType = 'turkish' | 'indian' | 'carnatic' | 'cumbia' | 'classical' | 'repeat-previous' | 'repeat-seed' | 'upload-phrase' | 'seed' | 'mozart'
 
 export interface Variation {
   id: string
