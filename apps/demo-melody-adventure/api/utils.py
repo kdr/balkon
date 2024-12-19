@@ -2,6 +2,8 @@ import os
 import uuid
 from music21 import note, stream, converter, midi
 
+from .turkish import makam_note_remap
+
 # Create a directory for MIDI files if it doesn't exist
 MIDI_FOLDER = os.path.join(os.path.dirname(__file__), 'midi_files')
 os.makedirs(MIDI_FOLDER, exist_ok=True)
@@ -26,7 +28,7 @@ def save_midi_file(file):
     # Return the URL path that can be used to serve the file
     return f"/midi/{filename}", file_path
 
-def midiToMelodyNoteSequence(midi_path):
+def midi_to_melody_note_sequence(midi_path):
     # Load the score
     s = converter.parse(midi_path)
 
@@ -74,24 +76,30 @@ def note_to_state(note):
     return state
 
 def midi_to_notes(midi_path):
-    noteSequence = midiToMelodyNoteSequence(midi_path)
+    noteSequence = midi_to_melody_note_sequence(midi_path)
     return [note_to_state(note) for note in noteSequence]
 
-def melody_to_score(melody):
+def melody_to_score(melody, is_makam_notes=None):
     score = stream.Score()
     part = stream.Part()
     #print(melody)
+    i = 0
     for n, d in melody:
         if n == 'Rest':
             part.append(note.Rest(quarterLength=d))    
         else:
-            part.append(note.Note(n, quarterLength=d))
+            if is_makam_notes is not None and is_makam_notes[i]:
+                part.append(makam_note_remap(n, d))
+            else: 
+                part.append(note.Note(n, quarterLength=d))    
+        i += 1
+    
     score.append(part)
 
     return score
 
-def save_melody_to_midi(melody):
-    s = melody_to_score(melody)
+def save_melody_to_midi(melody, is_makam_notes=None):
+    s = melody_to_score(melody, is_makam_notes)
     mf = midi.translate.music21ObjectToMidiFile(s)
     filename = f"{str(uuid.uuid4())}.mid"
     file_path = os.path.join(MIDI_FOLDER, filename)
