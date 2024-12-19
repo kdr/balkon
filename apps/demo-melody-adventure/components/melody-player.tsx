@@ -35,7 +35,8 @@ export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
       audioContextRef.current = ctx
-      const instrument = await Soundfont.instrument(ctx, 'acoustic_grand_piano')
+      // acoustic_grand_piano, acoustic_guitar_nylon, acoustic_guitar_steel, violin, viola, synth_strings_1, orchestral_harp, shanai
+      const instrument = await Soundfont.instrument(ctx, 'acoustic_guitar_nylon')
       instrumentRef.current = instrument
       setIsInitialized(true)
     } catch (err) {
@@ -49,6 +50,13 @@ export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
     const loadMidi = async () => {
       if (!audioUrl) return
       
+      // Stop any current playback
+      if (playbackRef.current) {
+        clearInterval(playbackRef.current)
+      }
+      stopAllNotes()
+      setIsPlaying(false)
+      
       setIsLoading(true)
       setError(null)
       
@@ -60,7 +68,6 @@ export function MelodyPlayer({ audioUrl }: MelodyPlayerProps) {
         const midi = new Midi(arrayBuffer)
         midiRef.current = midi
         setProgress(0)
-        setIsPlaying(false)
         
       } catch (error) {
         console.error('Failed to load MIDI file:', error)
