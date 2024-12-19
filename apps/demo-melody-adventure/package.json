@@ -26,8 +26,9 @@
     "eslint-config-next": "13.4.2",
     "lucide-react": "^0.468.0",
     "midi-player-js": "^2.0.16",
-    "next": "13.4.3",
-    "postcss": "8.4.23",
+    "next": "^15.1.1",
+    "pnpm": "^9.15.0",
+    "postcss": "^8.4.49",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "soundfont-player": "^0.12.0",
@@ -36,5 +37,10 @@
     "tailwindcss-animate": "^1.0.7",
     "tone": "^15.0.4",
     "typescript": "5.0.4"
-  }
+  },
+  "description": "<p align=\"center\">\r   <a href=\"https://nextjs-flask-starter.vercel.app/\">\r     <img src=\"https://assets.vercel.com/image/upload/v1588805858/repositories/vercel/logo.png\" height=\"96\">\r     <h3 align=\"center\">Next.js Flask Starter</h3>\r   </a>\r </p>",
+  "main": "next.config.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
