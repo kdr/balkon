@@ -4,7 +4,7 @@ import music21 as m21
 from .simplemelodygen.extensions import MultiInstanceTrainableMarkovChainMelodyGenerator
 
 def get_generator_data():
-    midi = m21.converter.parse(os.path.join(os.path.dirname(__file__), 'cumbia.mid'))
+    midi = m21.converter.parse(os.path.join(os.path.dirname(__file__), 'cumbia_sample.mid'))
     notes = []
     for element in midi.flat:
         if isinstance(element, m21.note.Note):
