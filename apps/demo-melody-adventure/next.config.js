@@ -15,16 +15,27 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Allow CORS for all routes
         source: '/:path*',
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
             value: '*',
           },
+          {
+            key: 'Connection',
+            value: 'keep-alive',
+          },
+          {
+            key: 'Keep-Alive',
+            value: 'timeout=300',
+          },
         ],
       },
     ]
+  },
+  experimental: {
+    proxyTimeout: 300000,
+    serverTimeout: 300000,
   },
 }
 

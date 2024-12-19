@@ -27,6 +27,7 @@
     "lucide-react": "^0.468.0",
     "midi-player-js": "^2.0.16",
     "next": "13.4.3",
+    "pnpm": "^9.15.0",
     "postcss": "8.4.23",
     "react": "18.2.0",
     "react-dom": "18.2.0",

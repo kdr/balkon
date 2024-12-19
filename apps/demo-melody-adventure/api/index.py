@@ -1,3 +1,8 @@
+import os
+import uuid
+import tempfile
+import subprocess
+
 from flask import Flask, request, jsonify, send_from_directory
 import json
 import time
@@ -11,11 +16,15 @@ from . import cumbia
 from . import turkish
 from . import mozart
 
+from werkzeug.serving import WSGIRequestHandler
+
 MAX_LENGTH = 100
 MAX_BARS = 2
 QUARTER_NOTE_PER_BAR = 4
 
+WSGIRequestHandler.protocol_version = "HTTP/1.1"
 app = Flask(__name__)
+app.config['TIMEOUT'] = 300
 
 MELODY_GENERATOR_MAP = {
     #'bach': bach.generate_melody,
@@ -148,21 +157,68 @@ def get_seed_notes():
         'variation_history': ['seed']
     })
 
+# Define constants for paths
+MODEL_PATH = "/home/kdr_aviaryhq_com/data/music_transformer/melody_conditioned_model_16.ckpt"
+OUTPUT_BASE_PATH = "/home/kdr_aviaryhq_com/github/balkon/apps/demo-melody-adventure/api/midi_files"
+
+# TODO - only works on my server, to setup make a conda environment named magenta following instructions from here and also git clone / download checkpoint and make paths simlilar to the avove constant files
+# https://github.com/Elvenson/piano_transformer
 @app.route("/api/generate_accompaniment", methods=['POST'])
 def generate_accompaniment():
     try:
-        # Simulate processing time
-        time.sleep(5)
-        
-        # Mock response - in a real implementation, this would be where you generate
-        # the accompaniment and return the actual file URL
-        mock_file_url = "/midi/accompaniment.mid"
-        
-        return jsonify({
-            "success": True,
-            "midi_uri": mock_file_url
-        })
-        
+        data = request.json
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        midi_uri = data.get('midi_uri')
+        if not midi_uri:
+            return jsonify({'error': 'No MIDI URI provided'}), 400
+
+        # Construct the full path to the MIDI file
+        melody_path = os.path.join(OUTPUT_BASE_PATH, os.path.basename(midi_uri))
+        if not os.path.exists(melody_path):
+            return jsonify({"error": "MIDI file not found."}), 404
+
+        # Create a temporary directory for the output
+        with tempfile.TemporaryDirectory() as tmp_output_dir:
+            # Build the command to execute the melody generation program
+            command = [
+                "conda", "run", "-n", "magenta", "python", "/home/kdr_aviaryhq_com/github/piano_transformer/melody_sample.py",
+                f"-model_path={MODEL_PATH}",
+                f"-output_dir={tmp_output_dir}",
+                "-decode_length=1024",
+                f"-melody_path={melody_path}",
+                "-num_samples=1"
+            ]
+
+            # Execute the program and wait for completion
+            try:
+                subprocess.run(command, check=True)
+            except subprocess.CalledProcessError as e:
+                return jsonify({"error": f"Failed to generate accompaniment: {str(e)}"}), 500
+
+            # Find the generated MIDI file in the output directory
+            generated_midi_file = None
+            for file_name in os.listdir(tmp_output_dir):
+                if file_name.endswith(".mid"):
+                    generated_midi_file = os.path.join(tmp_output_dir, file_name)
+                    break
+
+            if not generated_midi_file:
+                return jsonify({"error": "No accompaniment MIDI file generated."}), 500
+
+            # Generate a unique ID and move the generated MIDI file to the final location
+            midi_id = str(uuid.uuid4())
+            final_midi_path = os.path.join(OUTPUT_BASE_PATH, f"{midi_id}.mid")
+            os.rename(generated_midi_file, final_midi_path)
+
+            # Return the MIDI file URL
+            midi_url = f"/midi/{midi_id}.mid"
+            return jsonify({
+                "success": True,
+                "midi_uri": midi_url
+            })
+
     except Exception as e:
         return jsonify({
             "error": str(e)
