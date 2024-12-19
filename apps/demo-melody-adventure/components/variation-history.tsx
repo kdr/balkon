@@ -5,8 +5,6 @@ import type { Variation } from '@/types/melody'
 const VARIATION_ICONS = {
   turkish: Globe,
   indian: Music2,
-  carnatic: Waves,
-  cumbia: Sparkles,
   classical: Waves,
   ai: Sparkles,
   'repeat-previous': Repeat,
@@ -17,10 +15,8 @@ const VARIATION_ICONS = {
 }
 
 const VARIATION_COLORS = {
-  turkish: 'text-red-400',
+  turkish: 'text-blue-400',
   indian: 'text-orange-400',
-  carnatic: 'text-green-400',
-  cumbia: 'text-blue-400',
   classical: 'text-violet-400',
   ai: 'text-emerald-400',
   'repeat-previous': 'text-yellow-400',
