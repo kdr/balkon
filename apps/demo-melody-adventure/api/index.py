@@ -9,6 +9,7 @@ from . import bach
 from . import hindustani
 from . import carnatic
 from . import cumbia
+from . import turkish
 
 app = Flask(__name__)
 
@@ -18,7 +19,7 @@ MELODY_GENERATOR_MAP = {
     'classical': bach.generate_melody,
     'carnatic': carnatic.generate_melody,
     'cumbia': cumbia.generate_melody,
-    #'turkish': makam.generate_melody,
+    'turkish': turkish.generate_melody,
 }
 
 # Add route to serve MIDI files
@@ -52,15 +53,19 @@ def update_melody():
         seed_notes = json.loads(request.form.get('seed_notes', '[]'))
         current_notes = json.loads(request.form.get('current_notes', '[]'))
         variation_history = json.loads(request.form.get('variation_history', '[]'))
+        is_makam_notes = json.loads(request.form.get('is_makam_notes', '[]'))
 
-        current_melody = list(current_notes) + list(new_notes)   
-        midi_uri, _ = save_melody_to_midi(current_melody)
+        current_melody = list(current_notes) + list(new_notes)
+        is_makam_notes = is_makam_notes + list([False] * len(new_notes))
+        
+        midi_uri, _ = save_melody_to_midi(current_melody, is_makam_notes)
 
         return jsonify({
             'seed_notes': seed_notes,
             'current_notes': current_melody,
             'recent_notes': new_notes,
             'midi_uri': midi_uri,
+            'is_makam_notes': is_makam_notes,
             'variation_history': variation_history + [requested_variation]
         })
     
@@ -74,7 +79,8 @@ def update_melody():
     recent_notes = data.get('recent_notes', [])
     variation_history = data.get('variation_history', [])
     requested_variation = data.get('requested_variation', '')
-
+    is_makam_notes = data.get('is_makam_notes', [])
+    
     new_notes = []
 
     if requested_variation == 'repeat-previous':
@@ -87,15 +93,21 @@ def update_melody():
         current_notes = list(current_notes) + list(new_notes)   
     else:
         return jsonify({'error': 'Invalid variation'}), 400
+
+    if requested_variation == 'turkish':
+        is_makam_notes = is_makam_notes + list([True] * len(new_notes))
+    else:
+        is_makam_notes = is_makam_notes + list([False] * len(new_notes))
     
     #print(current_notes)
-    midi_uri, _ = save_melody_to_midi(current_notes)
+    midi_uri, _ = save_melody_to_midi(current_notes, is_makam_notes)
     
     response = {
         'seed_notes': seed_notes,
         'current_notes': current_notes,
         'recent_notes': new_notes,
         'midi_uri': midi_uri,
+        'is_makam_notes': is_makam_notes,
         'variation_history': variation_history
     }
     #print(json.dumps(response, indent=2))
@@ -113,6 +125,7 @@ def get_seed_notes():
     initial_notes = midi_to_notes(file_path)
 
     initial_notes = [(n[0], float(n[1])) for n in initial_notes]
+    is_makam_notes = [False] * len(initial_notes)
     
     # Mock response with initial data
     return jsonify({
@@ -120,6 +133,7 @@ def get_seed_notes():
         'current_notes': initial_notes,
         'recent_notes': initial_notes,
         'midi_uri': midi_uri,
+        'is_makam_notes': is_makam_notes,
         'variation_history': ['seed']
     })
 

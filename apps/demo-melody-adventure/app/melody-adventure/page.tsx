@@ -6,18 +6,15 @@ import { MelodyPlayer } from '@/components/melody-player'
 import { MelodyOptions } from '@/components/melody-options'
 import { VariationHistory } from '@/components/variation-history'
 import { DownloadSection } from '@/components/download-section'
+import { Variation, VariationType } from '@/types/melody'
 
 interface MelodyState {
   currentAudioUrl: string
   seedNotes: [string, number][]
   currentNotes: [string, number][]
   recentNotes: [string, number][]
-  variations: {
-    id: string
-    type: string
-    timestamp: string
-    label: string
-  }[]
+  isMakamNotes: boolean[]
+  variations: Variation[]
 }
 
 export default function MelodyAdventure() {
@@ -33,9 +30,10 @@ export default function MelodyAdventure() {
           seedNotes: parsedData.seed_notes,
           currentNotes: parsedData.seed_notes, // Initialize current notes with seed notes
           recentNotes: [],
+          isMakamNotes: parsedData.is_makam_notes || [],
           variations: [{
             id: '1',
-            type: 'seed',
+            type: 'seed' as VariationType,
             timestamp: new Date().toISOString(),
             label: 'Initial Seed'
           }]
@@ -51,9 +49,10 @@ export default function MelodyAdventure() {
       seedNotes: [],
       currentNotes: [],
       recentNotes: [],
+      isMakamNotes: [],
       variations: [{
         id: '1',
-        type: 'seed',
+        type: 'seed' as VariationType,
         timestamp: new Date().toISOString(),
         label: 'Initial Seed'
       }]
@@ -73,6 +72,7 @@ export default function MelodyAdventure() {
           seedNotes: parsedData.seed_notes,
           currentNotes: parsedData.seed_notes,
           recentNotes: [],
+          isMakamNotes: parsedData.is_makam_notes || [],
         }))
       } catch (error) {
         console.error('Error parsing seed data:', error)
@@ -95,6 +95,7 @@ export default function MelodyAdventure() {
         formData.append('current_notes', JSON.stringify(melodyState.currentNotes))
         formData.append('recent_notes', JSON.stringify(melodyState.recentNotes))
         formData.append('variation_history', JSON.stringify(melodyState.variations.map(v => v.type)))
+        formData.append('is_makam_notes', JSON.stringify(melodyState.isMakamNotes))
 
         const response = await fetch('/api/update_melody', {
           method: 'POST',
@@ -111,9 +112,10 @@ export default function MelodyAdventure() {
           seedNotes: data.seed_notes,
           currentNotes: data.current_notes,
           recentNotes: data.recent_notes,
+          isMakamNotes: data.is_makam_notes,
           variations: [...prev.variations, {
             id: Date.now().toString(),
-            type: newVariation.type,
+            type: newVariation.type as VariationType,
             timestamp: new Date().toISOString(),
             label: newVariation.label
           }]
@@ -128,6 +130,7 @@ export default function MelodyAdventure() {
             seed_notes: melodyState.seedNotes,
             current_notes: melodyState.currentNotes,
             recent_notes: melodyState.recentNotes,
+            is_makam_notes: melodyState.isMakamNotes,
             variation_history: melodyState.variations.map(v => v.type),
             requested_variation: newVariation.type
           }),
@@ -143,9 +146,10 @@ export default function MelodyAdventure() {
           seedNotes: data.seed_notes,
           currentNotes: data.current_notes,
           recentNotes: data.recent_notes,
+          isMakamNotes: data.is_makam_notes,
           variations: [...prev.variations, {
             id: Date.now().toString(),
-            type: newVariation.type,
+            type: newVariation.type as VariationType,
             timestamp: new Date().toISOString(),
             label: newVariation.label
           }]
@@ -165,9 +169,9 @@ export default function MelodyAdventure() {
           <h1 className="text-3xl font-bold text-center text-white">
             Melody Adventure
           </h1>
-          <p className="text-zinc-400 text-center max-w-lg mx-auto">
-            Welcome to your choose-your-own melody adventure! Use our AI-generated options or your own inputs to keep the melody going and create something unique.
-          </p>
+          {/* <p className="text-zinc-400 text-center max-w-lg mx-auto">
+            Welcome to your choose-your-own melody adventure!
+          </p> */}
           <MelodyPlayer audioUrl={melodyState.currentAudioUrl} />
           
           <h2 className="text-xl font-semibold text-zinc-300 pt-4">
