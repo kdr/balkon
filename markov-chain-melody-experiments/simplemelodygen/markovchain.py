@@ -7,18 +7,20 @@ from music21 import metadata, note, stream
 
 class MarkovChainMelodyGenerator:
     """
-    Represents a Markov Chain model for melody generation.
+    Represents a Markov Chain model for melody generation with a customizable order.
     """
 
-    def __init__(self, states):
+    def __init__(self, states, order=5):
         """
-        Initialize the MarkovChain with a list of states.
+        Initialize the MarkovChain with a list of states and a given order.
 
         Parameters:
             states (list of tuples): A list of possible (pitch, duration)
                 pairs.
+            order (int): The order of the Markov chain (1 for first-order, 2 for second-order, etc.).
         """
         self.states = states
+        self.order = order
         self.initial_probabilities = np.zeros(len(states))
         self.transition_matrix = np.zeros((len(states), len(states)))
         self._state_indexes = {state: i for (i, state) in enumerate(states)}
@@ -45,7 +47,7 @@ class MarkovChainMelodyGenerator:
         """
         melody = [self._generate_starting_state()]
         for _ in range(1, length):
-            melody.append(self._generate_next_state(melody[-1]))
+            melody.append(self._generate_next_state(melody[-self.order:]))
         return melody
 
     def _calculate_initial_probabilities(self, notes):
@@ -66,7 +68,7 @@ class MarkovChainMelodyGenerator:
         Parameters:
             note (music21.note.Note): A note object.
         """
-        state = (note.pitch.nameWithOctave, note.duration.quarterLength)
+        state = self._note_to_state(note)
         self.initial_probabilities[self._state_indexes[state]] += 1
 
     def _normalize_initial_probabilities(self):
@@ -86,57 +88,32 @@ class MarkovChainMelodyGenerator:
         Parameters:
             notes (list): A list of music21.note.Note objects.
         """
-        for i in range(len(notes) - 1):
-            self._increment_transition_count(notes[i], notes[i + 1])
+        for i in range(len(notes) - self.order):
+            self._increment_transition_count(notes[i:i + self.order], notes[i + self.order])
         self._normalize_transition_matrix()
 
-    def _increment_transition_count(self, current_note, next_note):
+    def _increment_transition_count(self, current_state, next_note):
         """
-        Increment the transition count from current_note to next_note.
+        Increment the transition count from current_state to next_note.
 
         Parameters:
-            current_note (music21.note.Note): The current note object.
+            current_state (list): The sequence of notes representing the current state.
             next_note (music21.note.Note): The next note object.
         """
-        state = (
-            current_note.pitch.nameWithOctave,
-            current_note.duration.quarterLength,
-        )
-        next_state = (
-            next_note.pitch.nameWithOctave,
-            next_note.duration.quarterLength,
-        )
-        self.transition_matrix[
-            self._state_indexes[state], self._state_indexes[next_state]
-        ] += 1
+        state = tuple(current_state)
+        next_state = self._note_to_state(next_note)
+        self.transition_matrix[self._state_indexes[state], self._state_indexes[next_state]] += 1
 
     def _normalize_transition_matrix(self):
         """
-        This method normalizes each row of the transition matrix so that the
-        sum of probabilities in each row equals 1. This is essential for the rows
-        of the matrix to represent probability distributions of
-        transitioning from one state to the next.
+        Normalize the transition matrix so that each row sums to 1.
         """
-
-        # Calculate the sum of each row in the transition matrix.
-        # These sums represent the total count of transitions from each state
-        # to any other state.
         row_sums = self.transition_matrix.sum(axis=1)
-
-        # Use np.errstate to ignore any warnings that arise during division.
-        # This is necessary because we might encounter rows with a sum of 0,
-        # which would lead to division by zero.
         with np.errstate(divide="ignore", invalid="ignore"):
-            # Normalize each row by its sum. np.where is used here to handle
-            # rows where the sum is zero.
-            # If the sum is zero (no transitions from that state), np.where
-            # ensures that the row remains a row of zeros instead of turning
-            # into NaNs due to division by zero.
             self.transition_matrix = np.where(
-                row_sums[:, None],  # Condition: Check each row's sum.
-                # True case: Normalize if sum is not zero.
+                row_sums[:, None],
                 self.transition_matrix / row_sums[:, None],
-                0,  # False case: Keep as zero if sum is zero.
+                0,
             )
 
     def _generate_starting_state(self):
@@ -146,27 +123,22 @@ class MarkovChainMelodyGenerator:
         Returns:
             A state from the list of states.
         """
-        initial_index = np.random.choice(
-            list(self._state_indexes.values()), p=self.initial_probabilities
-        )
+        initial_index = np.random.choice(list(self._state_indexes.values()), p=self.initial_probabilities)
         return self.states[initial_index]
 
-    def _generate_next_state(self, current_state):
+    def _generate_next_state(self, current_states):
         """
-        Generate the next state based on the transition matrix and the current
-        state.
+        Generate the next state based on the transition matrix and the current state.
 
         Parameters:
-            current_state: The current state in the Markov Chain.
+            current_state (list): The current state in the Markov Chain.
 
         Returns:
             The next state in the Markov Chain.
         """
-        if self._does_state_have_subsequent(current_state):
-            index = np.random.choice(
-                list(self._state_indexes.values()),
-                p=self.transition_matrix[self._state_indexes[current_state]],
-            )
+        if self._does_state_have_subsequent(current_states):
+            index = np.random.choice(list(self._state_indexes.values()),
+                                     p=self.transition_matrix[self._state_indexes[tuple(current_states)]])
             return self.states[index]
         return self._generate_starting_state()
 
@@ -180,7 +152,19 @@ class MarkovChainMelodyGenerator:
         Returns:
             True if the state has a subsequent state, False otherwise.
         """
-        return self.transition_matrix[self._state_indexes[state]].sum() > 0
+        return self.transition_matrix[self._state_indexes[tuple(state)]].sum() > 0
+
+    def _note_to_state(self, note):
+        """
+        Converts a note to a state representation.
+
+        Parameters:
+            note (music21.note.Note): A music21 note object.
+
+        Returns:
+            A tuple representing the state (pitch, duration).
+        """
+        return (note.pitch.nameWithOctave, note.duration.quarterLength)
 
 
 def create_training_data():
