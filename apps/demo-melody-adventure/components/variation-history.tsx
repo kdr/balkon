@@ -1,5 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Globe, Music2, Waves, Sparkles, Repeat, RotateCcw, Disc, Upload, Rewind } from 'lucide-react'
+import { Globe, Music2, Waves, Sparkles, Repeat, RotateCcw, Disc, Upload, Rewind, Music } from 'lucide-react'
 import type { Variation } from '@/types/melody'
 
 const VARIATION_ICONS = {
@@ -13,7 +13,8 @@ const VARIATION_ICONS = {
   'repeat-seed': RotateCcw,
   'upload-phrase': Upload,
   'repeat-phrase': Rewind,
-  seed: Disc
+  seed: Disc,
+  mozart: Music
 }
 
 const VARIATION_COLORS = {
@@ -27,7 +28,8 @@ const VARIATION_COLORS = {
   'repeat-seed': 'text-pink-400',
   'upload-phrase': 'text-cyan-400',
   'repeat-phrase': 'text-rose-400',
-  seed: 'text-zinc-400'
+  seed: 'text-zinc-400',
+  mozart: 'text-green-400'
 }
 
 interface VariationHistoryProps {

@@ -32,11 +32,10 @@ def generate_melody(notes, length=15, max_bars=10, quarter_note_per_bar=4):
             melody, new_notes = MODEL.generate(length, previous_sequence=notes, max_bars=max_bars, quarter_note_per_bar=quarter_note_per_bar)
         except Exception as e:
             print(">>>>>>> Error generating melody", e)
-            _, new_notes  = MODEL.generate(length)
+            _, new_notes  = MODEL.generate(length, max_bars=max_bars, quarter_note_per_bar=quarter_note_per_bar)
             melody = notes + new_notes
     else:
-        melody, new_notes = MODEL.generate(length)
+        melody, new_notes = MODEL.generate(length, max_bars=max_bars, quarter_note_per_bar=quarter_note_per_bar)
     print(melody)
 
     return melody, new_notes
-    

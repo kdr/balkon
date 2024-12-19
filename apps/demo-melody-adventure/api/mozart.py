@@ -3,7 +3,7 @@ from .simplemelodygen.extensions import MultiInstanceTrainableMarkovChainMelodyG
 from .trainingdata import corpus_to_training_data
 
 def get_generator_data():
-    bach_data, bach_states = corpus_to_training_data('bach')
+    bach_data, bach_states = corpus_to_training_data('mozart')
     return bach_data, bach_states
 
 TRAINING_DATA, STATES = get_generator_data()

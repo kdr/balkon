@@ -9,8 +9,9 @@ from . import hindustani
 from . import carnatic
 from . import cumbia
 from . import turkish
+from . import mozart
 
-MAX_LENGTH = 32
+MAX_LENGTH = 100
 MAX_BARS = 2
 QUARTER_NOTE_PER_BAR = 4
 
@@ -23,6 +24,7 @@ MELODY_GENERATOR_MAP = {
     'carnatic': carnatic.generate_melody,
     'cumbia': cumbia.generate_melody,
     'turkish': turkish.generate_melody,
+    'mozart': mozart.generate_melody,
 }
 
 # Add route to serve MIDI files
@@ -89,8 +91,8 @@ def update_melody():
     if requested_variation == 'repeat-previous':
         new_notes = [n for n in recent_notes]
         current_notes = list(current_notes) + list(new_notes)   
-    elif requested_variation in ['turkish', 'indian', 'classical', 'carnatic', 'cumbia']:
-        current_notes, new_notes = MELODY_GENERATOR_MAP[requested_variation](current_notes, length=MAX_LENGTH, max_bars=MAX_BARS)
+    elif requested_variation in ['turkish', 'indian', 'classical', 'carnatic', 'cumbia', 'mozart']:
+        current_notes, new_notes = MELODY_GENERATOR_MAP[requested_variation](current_notes, length=MAX_LENGTH, max_bars=MAX_BARS, quarter_note_per_bar=QUARTER_NOTE_PER_BAR)
     elif requested_variation == 'repeat-seed':
         new_notes = [n for n in seed_notes]
         current_notes = list(current_notes) + list(new_notes)   
@@ -104,7 +106,13 @@ def update_melody():
     
     #print(current_notes)
     midi_uri, _ = save_melody_to_midi(current_notes, is_makam_notes)
+
+    # for json serialization
+    current_notes = [(n[0], float(n[1])) for n in current_notes]
+    new_notes = [(n[0], float(n[1])) for n in new_notes]
     
+    print(current_notes)
+    print(len(current_notes), len(new_notes))
     response = {
         'seed_notes': seed_notes,
         'current_notes': current_notes,
