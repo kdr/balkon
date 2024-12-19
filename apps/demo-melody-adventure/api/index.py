@@ -161,6 +161,8 @@ def get_seed_notes():
 MODEL_PATH = "/home/kdr_aviaryhq_com/data/music_transformer/melody_conditioned_model_16.ckpt"
 OUTPUT_BASE_PATH = "/home/kdr_aviaryhq_com/github/balkon/apps/demo-melody-adventure/api/midi_files"
 
+# TODO - only works on my server, to setup make a conda environment named magenta following instructions from here and also git clone / download checkpoint and make paths simlilar to the avove constant files
+# https://github.com/Elvenson/piano_transformer
 @app.route("/api/generate_accompaniment", methods=['POST'])
 def generate_accompaniment():
     try:
