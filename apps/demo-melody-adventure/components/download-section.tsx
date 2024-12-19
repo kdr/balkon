@@ -38,6 +38,12 @@ export function DownloadSection({ audioUrl }: DownloadSectionProps) {
     try {
       const response = await fetch('/api/generate_accompaniment', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          midi_uri: audioUrl,
+        }),
       })
       
       if (!response.ok) {
