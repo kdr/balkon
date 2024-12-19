@@ -10,15 +10,17 @@ class MarkovChainMelodyGenerator:
     Represents a Markov Chain model for melody generation.
     """
 
-    def __init__(self, states):
+    def __init__(self, states, order=5):
         """
         Initialize the MarkovChain with a list of states.
 
         Parameters:
             states (list of tuples): A list of possible (pitch, duration)
                 pairs.
+            order (int): The order of the Markov Chain.
         """
         self.states = states
+        self.order = order
         self.initial_probabilities = np.zeros(len(states))
         self.transition_matrix = np.zeros((len(states), len(states)))
         self._state_indexes = {state: i for (i, state) in enumerate(states)}
@@ -45,7 +47,7 @@ class MarkovChainMelodyGenerator:
         """
         melody = [self._generate_starting_state()]
         for _ in range(1, length):
-            melody.append(self._generate_next_state(melody[-1]))
+            melody.append(self._generate_next_state(melody[-self.order:]))
         return melody
 
     def _calculate_initial_probabilities(self, notes):
@@ -86,29 +88,35 @@ class MarkovChainMelodyGenerator:
         Parameters:
             notes (list): A list of music21.note.Note objects.
         """
-        for i in range(len(notes) - 1):
-            self._increment_transition_count(notes[i], notes[i + 1])
+        for i in range(len(notes) - self.order):
+            self._increment_transition_count(notes[i:i + self.order], notes[i + self.order])
         self._normalize_transition_matrix()
 
-    def _increment_transition_count(self, current_note, next_note):
+    def _increment_transition_count(self, current_state, next_note):
         """
         Increment the transition count from current_note to next_note.
 
         Parameters:
-            current_note (music21.note.Note): The current note object.
+            current_state (list): The current state in the Markov Chain.
             next_note (music21.note.Note): The next note object.
         """
-        state = (
-            current_note.pitch.nameWithOctave,
-            current_note.duration.quarterLength,
-        )
-        next_state = (
-            next_note.pitch.nameWithOctave,
-            next_note.duration.quarterLength,
-        )
+        state = tuple(self._note_to_state(note) for note in current_state)
+        next_state = self._note_to_state(next_note)
         self.transition_matrix[
             self._state_indexes[state], self._state_indexes[next_state]
         ] += 1
+
+    def _note_to_state(self, note):
+        """
+        Convert a note object to a state tuple.
+
+        Parameters:
+            note (music21.note.Note): A note object.
+
+        Returns:
+            A tuple representing the state.
+        """
+        return (note.pitch.nameWithOctave, note.duration.quarterLength)
 
     def _normalize_transition_matrix(self):
         """
