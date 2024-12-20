@@ -12,6 +12,8 @@ Prerequisites:
 First, install the dependencies:
 
 ```bash
+git lfs install
+git lfs pull
 pip install -r requirements.txt
 npm install
 ```
