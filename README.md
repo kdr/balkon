@@ -4,7 +4,7 @@ Repo for team "Balkon" project as part of the [Generative AI Music Workshop](htt
 
 See these slides for more information: [Google Slides](https://docs.google.com/presentation/d/1WrLXe_GgY0DBO0b68IxigkbiwafrCIVx3zbgE7jamcg/edit#slide=id.p)
 
-<img src="demo.png" alt="demo" width="500"/>
+<img src="demo.png" alt="demo" width="1024"/>
 
 ## Team members
 
